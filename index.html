@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kahoot Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .gradient-purple {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .gradient-red {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .gradient-green {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .gradient-yellow {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        .answer-btn {
+            transition: all 0.3s ease;
+        }
+        .answer-btn:active {
+            transform: scale(0.95);
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <!-- Home View -->
+        <div id="home-view" class="min-h-screen gradient-bg">
+            <div class="container mx-auto px-4 py-8">
+                <div class="text-center text-white mb-12">
+                    <h1 class="text-6xl font-bold mb-4">Kahoot Clone</h1>
+                    <p class="text-xl opacity-90">Crie e jogue quizzes interativos</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <!-- Entrar em um jogo -->
+                    <div class="bg-white rounded-2xl p-8 shadow-xl">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <span class="text-white text-2xl">👥</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800">Entrar em um Jogo</h2>
+                        </div>
+                        <div class="space-y-4">
+                            <input
+                                type="text"
+                                id="room-code-input"
+                                placeholder="Código da sala"
+                                maxlength="6"
+                                class="w-full p-4 border-2 border-gray-200 rounded-lg text-center text-lg font-bold uppercase"
+                            />
+                            <button
+                                onclick="joinGameFromInput()"
+                                class="w-full bg-blue-500 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Entrar no Jogo
+                            </button>
+                            <p class="text-sm text-gray-600 text-center">
+                                Digite o código de 6 dígitos para entrar
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Criar/Gerenciar Quizzes -->
+                    <div class="bg-white rounded-2xl p-8 shadow-xl">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <span class="text-white text-2xl">✏️</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800">Criar Quizzes</h2>
+                        </div>
+                        <div class="space-y-4">
+                            <button
+                                onclick="showMyQuizzes()"
+                                class="w-full bg-green-500 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-600 transition-colors"
+                            >
+                                ➕ Meus Quizzes
+                            </button>
+                            <button
+                                onclick="createDemoGame()"
+                                class="w-full border-2 border-green-500 text-green-500 py-4 rounded-lg font-bold text-lg hover:bg-green-50 transition-colors"
+                            >
+                                🎮 Jogo Demo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Quizzes View -->
+        <div id="my-quizzes-view" class="min-h-screen bg-gray-100 hidden">
+            <div class="bg-white shadow-sm border-b">
+                <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                    <button onclick="showHome()" class="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                        <span>🏠</span> Voltar
+                    </button>
+                    <h1 class="text-2xl font-bold">Meus Quizzes</h1>
+                    <button onclick="createDemoGame()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        ➕ Demo Quiz
+                    </button>
+                </div>
+            </div>
+
+            <div class="container mx-auto px-4 py-8">
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="quizzes-grid">
+                    <!-- Quizzes serão inseridos aqui dinamicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Host View -->
+        <div id="game-host-view" class="min-h-screen gradient-purple text-white hidden">
+            <!-- Waiting Phase -->
+            <div id="host-waiting" class="container mx-auto px-4 py-8 text-center">
+                <h1 class="text-4xl font-bold mb-8" id="quiz-title">Quiz Demo</h1>
+                <div class="bg-white/20 rounded-2xl p-8 max-w-md mx-auto mb-8">
+                    <h2 class="text-2xl font-bold mb-4">Código da Sala</h2>
+                    <div class="text-6xl font-bold bg-white text-purple-600 rounded-lg py-4" id="room-code">
+                        ABC123
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <h3 class="text-xl mb-4">Jogadores Conectados: <span id="players-count">0</span></h3>
+                    <div class="flex flex-wrap justify-center gap-2" id="players-list">
+                        <!-- Jogadores serão listados aqui -->
+                    </div>
+                </div>
+                <button
+                    onclick="startQuestion()"
+                    class="bg-green-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-green-600"
+                >
+                    Iniciar Pergunta
+                </button>
+            </div>
+
+            <!-- Question Phase -->
+            <div id="host-question" class="container mx-auto px-4 py-8 hidden">
+                <div class="text-center mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xl" id="question-counter">Pergunta 1 de 3</span>
+                        <div class="bg-white text-red-500 px-4 py-2 rounded-full font-bold text-xl">
+                            🕒 <span id="timer">20</span>s
+                        </div>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-8" id="current-question">Pergunta aparecerá aqui</h2>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto" id="options-display">
+                    <!-- Opções serão inseridas aqui -->
+                </div>
+                <div class="text-center mt-8">
+                    <p class="text-xl">Respostas recebidas: <span id="answers-count">0</span> / <span id="total-players">0</span></p>
+                </div>
+            </div>
+
+            <!-- Results Phase -->
+            <div id="host-results" class="container mx-auto px-4 py-8 hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-4">Resposta Correta!</h2>
+                    <div class="bg-white text-green-600 p-6 rounded-xl max-w-2xl mx-auto">
+                        <h3 class="text-2xl font-bold" id="correct-answer-display">Resposta correta aqui</h3>
+                    </div>
+                </div>
+                <div class="max-w-2xl mx-auto">
+                    <h3 class="text-2xl font-bold mb-4 text-center">Classificação</h3>
+                    <div class="space-y-2" id="leaderboard">
+                        <!-- Classificação será inserida aqui -->
+                    </div>
+                </div>
+                <div class="text-center mt-8">
+                    <button
+                        onclick="nextQuestion()"
+                        class="bg-white text-green-600 px-8 py-4 rounded-xl text-xl font-bold hover:bg-gray-100"
+                        id="next-button"
+                    >
+                        Próxima Pergunta
+                    </button>
+                </div>
+            </div>
+
+            <!-- Final Results -->
+            <div id="host-final" class="container mx-auto px-4 py-8 text-center hidden">
+                <div class="text-8xl mb-8">🏆</div>
+                <h1 class="text-5xl font-bold mb-4">🎉 Parabéns! 🎉</h1>
+                <h2 class="text-3xl font-bold mb-8">Vencedor: <span id="winner-name">Jogador</span></h2>
+                <div class="bg-white/20 p-6 rounded-xl max-w-md mx-auto mb-8">
+                    <h3 class="text-2xl font-bold">Pontuação Final</h3>
+                    <p class="text-4xl font-bold" id="winner-score">0 pontos</p>
+                </div>
+                <button
+                    onclick="showHome()"
+                    class="bg-white text-orange-500 px-8 py-4 rounded-xl text-xl font-bold hover:bg-gray-100"
+                >
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Player View -->
+        <div id="game-player-view" class="min-h-screen gradient-purple text-white hidden">
+            <!-- Player Waiting -->
+            <div id="player-waiting" class="flex items-center justify-center min-h-screen">
+                <div class="text-center">
+                    <div class="text-8xl mb-8">👥</div>
+                    <h1 class="text-4xl font-bold mb-4">Aguardando o jogo começar...</h1>
+                    <p class="text-xl">Olá, <span id="player-name">Jogador</span>!</p>
+                    <p class="text-lg opacity-75">Sala: <span id="player-room-code">ABC123</span></p>
+                </div>
+            </div>
+
+            <!-- Player Question -->
+            <div id="player-question" class="container mx-auto px-4 py-8 hidden">
+                <div class="text-center mb-8">
+                    <div class="bg-white text-red-500 px-6 py-3 rounded-full font-bold text-2xl inline-block mb-4">
+                        🕒 <span id="player-timer">20</span>s
+                    </div>
+                    <h2 class="text-2xl font-bold" id="player-current-question">Pergunta aparecerá aqui</h2>
+                </div>
+                
+                <div id="player-options" class="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                    <!-- Opções para o jogador -->
+                </div>
+
+                <div id="player-answered" class="text-center hidden">
+                    <div class="text-8xl mb-4">✅</div>
+                    <h3 class="text-3xl font-bold">Resposta enviada!</h3>
+                    <p class="text-xl">Aguarde os outros jogadores...</p>
+                </div>
+            </div>
+
+            <!-- Player Results -->
+            <div id="player-results" class="container mx-auto px-4 py-8 text-center hidden">
+                <div id="player-correct" class="hidden">
+                    <div class="text-8xl mb-8">✅</div>
+                    <h1 class="text-5xl font-bold mb-4">Correto! 🎉</h1>
+                </div>
+                <div id="player-incorrect" class="hidden">
+                    <div class="text-8xl mb-8">❌</div>
+                    <h1 class="text-5xl font-bold mb-4">Incorreto 😞</h1>
+                </div>
+                
+                <div class="bg-white/20 p-6 rounded-xl max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl font-bold mb-2">Resposta Correta:</h3>
+                    <p class="text-xl" id="player-correct-answer">Resposta aqui</p>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-xl">Aguarde a próxima pergunta...</p>
+                </div>
+            </div>
+
+            <!-- Player Final -->
+            <div id="player-final" class="container mx-auto px-4 py-8 text-center hidden">
+                <div class="text-8xl mb-8">🏆</div>
+                <h1 class="text-4xl font-bold mb-4">Jogo Finalizado!</h1>
+                <div class="bg-white/20 p-8 rounded-xl max-w-md mx-auto mb-8">
+                    <h2 class="text-2xl font-bold mb-2">Sua Posição</h2>
+                    <p class="text-6xl font-bold" id="player-position">#1</p>
+                    <p class="text-2xl mt-4"><span id="player-final-score">0</span> pontos</p>
+                </div>
+                <button
+                    onclick="showHome()"
+                    class="bg-white text-orange-500 px-8 py-4 rounded-xl text-xl font-bold hover:bg-gray-100"
+                >
+                    Jogar Novamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado global da aplicação
+        let gameState = {
+            currentView: 'home',
+            user: { name: '', role: 'player' },
+            currentQuiz: null,
+            phase: 'waiting',
+            currentQuestion: 0,
+            players: [],
+            answers: {},
+            timeLeft: 20,
+            roomCode: '',
+            timer: null
+        };
+
+        // Dados dos quizzes de exemplo
+        const sampleQuizzes = [
+            {
+                id: 1,
+                title: "Geografia do Brasil",
+                description: "Teste seus conhecimentos sobre geografia brasileira",
+                questions: [
+                    {
+                        question: "Qual é a capital do Brasil?",
+                        options: ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador"],
+                        correct: 2,
+                        time: 20
+                    },
+                    {
+                        question: "Qual é o maior rio do Brasil?",
+                        options: ["Rio São Francisco", "Rio Amazonas", "Rio Paraná", "Rio Tocantins"],
+                        correct: 1,
+                        time: 20
+                    },
+                    {
+                        question: "Quantos estados tem o Brasil?",
+                        options: ["25", "26", "27", "28"],
+                        correct: 1,
+                        time: 15
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "História do Brasil",
+                description: "Fatos importantes da história brasileira",
+                questions: [
+                    {
+                        question: "Em que ano o Brasil foi descoberto?",
+                        options: ["1498", "1500", "1502", "1505"],
+                        correct: 1,
+                        time: 20
+                    },
+                    {
+                        question: "Quem proclamou a independência do Brasil?",
+                        options: ["Dom Pedro I", "Dom Pedro II", "Getúlio Vargas", "Tiradentes"],
+                        correct: 0,
+                        time: 20
+                    }
+                ]
+            }
+        ];
+
+        // Funções de navegação
+        function showView(viewName) {
+            document.querySelectorAll('[id$="-view"]').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById(viewName + '-view').classList.remove('hidden');
+            gameState.currentView = viewName;
+        }
+
+        function showHome() {
+            showView('home');
+            resetGame();
+        }
+
+        function showMyQuizzes() {
+            showView('my-quizzes');
+            loadQuizzes();
+        }
+
+        function resetGame() {
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+            }
+            gameState = {
+                ...gameState,
+                phase: 'waiting',
+                currentQuestion: 0,
+                players: [],
+                answers: {},
+                timeLeft: 20,
+                timer: null
+            };
+        }
+
+        // Funções de quiz
+        function loadQuizzes() {
+            const grid = document.getElementById('quizzes-grid');
+            grid.innerHTML = '';
+            
+            sampleQuizzes.forEach(quiz => {
+                const quizCard = document.createElement('div');
+                quizCard.className = 'bg-white rounded-lg shadow-md p-6';
+                quizCard.innerHTML = `
+                    <h3 class="text-xl font-bold mb-2">${quiz.title}</h3>
+                    <p class="text-gray-600 mb-4">${quiz.description}</p>
+                    <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                        <span>${quiz.questions.length} questões</span>
+                    </div>
+                    <button
+                        onclick="startGame(${quiz.id})"
+                        class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+                    >
+                        🎮 Jogar
+                    </button>
+                `;
+                grid.appendChild(quizCard);
+            });
+        }
+
+        // Funções de jogo
+        function generateRoomCode() {
+            return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function startGame(quizId) {
+            const quiz = sampleQuizzes.find(q => q.id === quizId);
+            if (!quiz) return;
+
+            gameState.currentQuiz = quiz;
+            gameState.roomCode = generateRoomCode();
+            gameState.phase = 'waiting';
+            gameState.currentQuestion = 0;
+            gameState.players = [];
+            gameState.answers = {};
+
+            document.getElementById('quiz-title').textContent = quiz.title;
+            document.getElementById('room-code').textContent = gameState.roomCode;
+            
+            showView('game-host');
+            showHostPhase('waiting');
+            updatePlayersDisplay();
+        }
+
+        function createDemoGame() {
+            // Adiciona alguns jogadores demo
+            gameState.players = [
+                { name: 'Ana', score: 0 },
+                { name: 'Bruno', score: 0 },
+                { name: 'Carlos', score: 0 }
+            ];
+            startGame(1);
+        }
+
+        function joinGameFromInput() {
+            const roomCode = document.getElementById('room-code-input').value.toUpperCase();
+            if (roomCode.length !== 6) {
+                alert('Digite um código de 6 dígitos');
+                return;
+            }
+            
+            const playerName = prompt('Digite seu nome:');
+            if (!playerName) return;
+            
+            joinGame(roomCode, playerName);
+        }
+
+        function joinGame(roomCode, playerName) {
+            gameState.user = { name: playerName, role: 'player' };
+            gameState.roomCode = roomCode;
+            
+            // Simula entrada na sala
+            if (!gameState.players.find(p => p.name === playerName)) {
+                gameState.players.push({ name: playerName, score: 0 });
+            }
+            
+            document.getElementById('player-name').textContent = playerName;
+            document.getElementById('player-room-code').textContent = roomCode;
+            
+            showView('game-player');
+            showPlayerPhase('waiting');
+            updatePlayersDisplay();
+        }
+
+        function showHostPhase(phase) {
+            document.querySelectorAll('[id^="host-"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById('host-' + phase).classList.remove('hidden');
+        }
+
+        function showPlayerPhase(phase) {
+            document.querySelectorAll('[id^="player-"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById('player-' + phase).classList.remove('hidden');
+        }
+
+        function updatePlayersDisplay() {
+            const count = document.getElementById('players-count');
+            const list = document.getElementById('players-list');
+            
+            if (count) count.textContent = gameState.players.length;
+            if (list) {
+                list.innerHTML = gameState.players.map(player => 
+                    `<span class="bg-white/20 px-3 py-1 rounded-full">${player.name}</span>`
+                ).join('');
+            }
+        }
+
+        function startQuestion() {
+            if (!gameState.currentQuiz) return;
+            
+            const currentQ = gameState.currentQuiz.questions[gameState.currentQuestion];
+            gameState.phase = 'question';
+            gameState.timeLeft = currentQ.time;
+            gameState.answers = {};
+            
+            // Atualizar interface do host
+            document.getElementById('question-counter').textContent = 
+                `Pergunta ${gameState.currentQuestion + 1} de ${gameState.currentQuiz.questions.length}`;
+            document.getElementById('current-question').textContent = currentQ.question;
+            document.getElementById('answers-count').textContent = '0';
+            document.getElementById('total-players').textContent = gameState.players.length;
+            
+            const optionsDisplay = document.getElementById('options-display');
+            const colors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
+            optionsDisplay.innerHTML = currentQ.options.map((option, index) => `
+                <div class="${colors[index]} p-6 rounded-xl text-center font-bold text-xl hover-scale transition-transform cursor-default">
+                    ${option}
+                </div>
+            `).join('');
+            
+            // Atualizar interface do jogador
+            document.getElementById('player-current-question').textContent = currentQ.question;
+            const playerOptions = document.getElementById('player-options');
+            playerOptions.innerHTML = currentQ.options.map((option, index) => `
+                <button
+                    onclick="submitAnswer(${index})"
+                    class="answer-btn ${colors[index]} p-6 rounded-xl text-center font-bold text-xl hover-scale transition-all"
+                >
+                    ${option}
+                </button>
+            `).join('');
+            
+            showHostPhase('question');
+            if (gameState.currentView === 'game-player') {
+                showPlayerPhase('question');
+                document.getElementById('player-answered').classList.add('hidden');
+                document.getElementById('player-options').classList.remove('hidden');
+            }
+            
+            startTimer();
+        }
+
+        function startTimer() {
+            if (gameState.timer) clearInterval(gameState.timer);
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                document.getElementById('timer').textContent = gameState.timeLeft;
+                document.getElementById('player-timer').textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    showResults();
+                }
+            }, 1000);
+        }
+
+        function submitAnswer(answerIndex) {
+            if (gameState.phase !== 'question') return;
+            
+            const playerId = gameState.user.name;
+            gameState.answers[playerId] = {
+                answer: answerIndex,
+                time: gameState.currentQuiz.questions[gameState.currentQuestion].time - gameState.timeLeft
+            };
+            
+            // Atualizar interface do jogador
+            document.getElementById('player-options').classList.add('hidden');
+            document.getElementById('player-answered').classList.remove('hidden');
+            
+            // Atualizar contador de respostas
+            document.getElementById('answers-count').textContent = Object.keys(gameState.answers).length;
+            
+            // Se todos responderam, mostrar resultados
+            if (Object.keys(gameState.answers).length >= gameState.players.length) {
+                setTimeout(showResults, 1000);
+            }
+        }
+
+        function showResults() {
+            clearInterval(gameState.timer);
+            gameState.phase = 'results';
+            
+            const currentQ = gameState.currentQuiz.questions[gameState.currentQuestion];
+            
+            // Calcular pontuações
+            gameState.players = gameState.players.map(player => {
+                const playerAnswer = gameState.answers[player.name];
+                if (playerAnswer && playerAnswer.answer === currentQ.correct) {
+                    const timeBonus = Math.max(0, gameState.timeLeft * 10);
+                    return {
+                        ...player,
+                        score: player.score + 1000 + timeBonus
+                    };
+                }
+                return player;
+            });
+            
+            // Atualizar interface do host
+            document.getElementById('correct-answer-display').textContent = currentQ.options[currentQ.correct];
+            
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = gameState.players
+                .sort((a, b) => b.score - a.score)
+                .map((player, index) => `
+                    <div class="bg-white/20 p-4 rounded-lg flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl font-bold">#${index + 1}</span>
+                            <span class="text-xl">${player.name}</span>
+                        </div>
+                        <span class="text-2xl font-bold">${player.score}</span>
+                    </div>
+                `).join('');
+            
+            // Atualizar botão "próxima"
+            const nextButton = document.getElementById('next-button');
+            nextButton.textContent = gameState.currentQuestion + 1 >= gameState.currentQuiz.questions.length ? 
+                'Ver Resultado Final' : 'Próxima Pergunta';
+            
+            showHostPhase('results');
+            
+            // Interface do jogador
+            if (gameState.currentView === 'game-player') {
+                const playerAnswer = gameState.answers[gameState.user.name];
+                const isCorrect = playerAnswer && playerAnswer.answer === currentQ.correct;
+                
+                document.getElementById('player-correct-answer').textContent = currentQ.options[currentQ.correct];
+                
+                if (isCorrect) {
+                    document.getElementById('player-correct').classList.remove('hidden');
+                    document.getElementById('player-incorrect').classList.add('hidden');
+                } else {
+                    document.getElementById('player-correct').classList.add('hidden');
+                    document.getElementById('player-incorrect').classList.remove('hidden');
+                }
+                
+                showPlayerPhase('results');
+            }
+        }
+
+        function nextQuestion() {
+            const nextQ = gameState.currentQuestion + 1;
+            if (nextQ >= gameState.currentQuiz.questions.length) {
+                showFinalResults();
+            } else {
+                gameState.currentQuestion = nextQ;
+                gameState.phase = 'waiting';
+                gameState.answers = {};
+                showHostPhase('waiting');
+                if (gameState.currentView === 'game-player') {
+                    showPlayerPhase('waiting');
+                }
+            }
+        }
+
+        function showFinalResults() {
+            gameState.phase = 'final';
+            
+            const winner = gameState.players.sort((a, b) => b.score - a.score)[0];
+            
+            document.getElementById('winner-name').textContent = winner?.name || 'Ninguém';
+            document.getElementById('winner-score').textContent = (winner?.score || 0) + ' pontos';
+            
+            showHostPhase('final');
+            
+            if (gameState.currentView === 'game-player') {
+                const myScore = gameState.players.find(p => p.name === gameState.user.name)?.score || 0;
+                const myPosition = gameState.players
+                    .sort((a, b) => b.score - a.score)
+                    .findIndex(p => p.name === gameState.user.name) + 1;
+                
+                document.getElementById('player-position').textContent = '#' + myPosition;
+                document.getElementById('player-final-score').textContent = myScore;
+                
+                showPlayerPhase('final');
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            showView('home');
+        });
+        // Auto-capitalize input do código da sala
+        document.getElementById('room-code-input').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+            if (e.target.value.length === 6) {
+                e.target.style.borderColor = '#10B981';
+                e.target.style.backgroundColor = '#ECFDF5';
+            } else {
+                e.target.style.borderColor = '#D1D5DB';
+                e.target.style.backgroundColor = '#FFFFFF';
+            }
+        });
+
+        // Adicionar efeitos sonoros simulados
+        function playSound(type) {
+            // Simula feedback sonoro com vibração em dispositivos móveis
+            if (navigator.vibrate) {
+                switch(type) {
+                    case 'correct':
+                        navigator.vibrate([100, 50, 100]);
+                        break;
+                    case 'incorrect':
+                        navigator.vibrate([200]);
+                        break;
+                    case 'tick':
+                        navigator.vibrate([50]);
+                        break;
+                }
+            }
+        }
+
+        // Melhorar feedback visual
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-bold transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            notification.style.transform = 'translateX(100%)';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Adicionar animações de entrada
+        function animateEntry(element) {
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.9)';
+            
+            setTimeout(() => {
+                element.style.transition = 'all 0.3s ease';
+                element.style.opacity = '1';
+                element.style.transform = 'scale(1)';
+            }, 50);
+        }
+
+        // Modificar função showView para incluir animações
+        const originalShowView = showView;
+        function enhancedShowView(viewName) {
+            originalShowView(viewName);
+            const view = document.getElementById(viewName + '-view');
+            if (view) {
+                animateEntry(view);
+            }
+        }
+        showView = enhancedShowView;
+
+        // Adicionar persistência local dos dados
+        function saveGameData() {
+            const gameData = {
+                quizzes: sampleQuizzes,
+                lastPlayed: new Date().toISOString()
+            };
+            // Simula salvamento (em uma aplicação real, usaria localStorage)
+            console.log('Dados salvos:', gameData);
+        }
+
+        // Melhorar a função submitAnswer com feedback visual
+        const originalSubmitAnswer = submitAnswer;
+        function enhancedSubmitAnswer(answerIndex) {
+            // Adicionar efeito visual ao botão clicado
+            const buttons = document.querySelectorAll('#player-options button');
+            if (buttons[answerIndex]) {
+                buttons[answerIndex].style.transform = 'scale(0.95)';
+                buttons[answerIndex].style.filter = 'brightness(1.2)';
+                
+                setTimeout(() => {
+                    buttons[answerIndex].style.transform = 'scale(1)';
+                    buttons[answerIndex].style.filter = 'brightness(1)';
+                }, 200);
+            }
+            
+            playSound('tick');
+            showNotification('Resposta enviada!', 'success');
+            originalSubmitAnswer(answerIndex);
+        }
+        submitAnswer = enhancedSubmitAnswer;
+
+        // Adicionar indicador de progresso visual
+        function updateProgressBar() {
+            if (!gameState.currentQuiz) return;
+            
+            const progress = ((gameState.currentQuestion + 1) / gameState.currentQuiz.questions.length) * 100;
+            
+            // Criar barra de progresso se não existir
+            let progressBar = document.getElementById('progress-bar');
+            if (!progressBar) {
+                progressBar = document.createElement('div');
+                progressBar.id = 'progress-bar';
+                progressBar.className = 'fixed top-0 left-0 w-full h-1 bg-white/20 z-50';
+                progressBar.innerHTML = '<div class="h-full bg-white transition-all duration-500 ease-out" style="width: 0%"></div>';
+                document.body.appendChild(progressBar);
+            }
+            
+            const progressFill = progressBar.querySelector('div');
+            progressFill.style.width = progress + '%';
+        }
+
+        // Melhorar timer com efeitos visuais
+        let originalStartTimer = startTimer;
+        function enhancedStartTimer() {
+            updateProgressBar();
+            
+            if (gameState.timer) clearInterval(gameState.timer);
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                const timerElement = document.getElementById('timer');
+                const playerTimerElement = document.getElementById('player-timer');
+                
+                if (timerElement) timerElement.textContent = gameState.timeLeft;
+                if (playerTimerElement) playerTimerElement.textContent = gameState.timeLeft;
+                
+                // Efeitos visuais para os últimos 5 segundos
+                if (gameState.timeLeft <= 5 && gameState.timeLeft > 0) {
+                    [timerElement, playerTimerElement].forEach(el => {
+                        if (el) {
+                            el.style.animation = 'pulse 0.5s ease-in-out';
+                            el.style.color = '#EF4444';
+                            setTimeout(() => {
+                                el.style.animation = '';
+                                if (gameState.timeLeft > 0) el.style.color = '';
+                            }, 500);
+                        }
+                    });
+                    playSound('tick');
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    showResults();
+                }
+            }, 1000);
+        }
+        startTimer = enhancedStartTimer;
+
+        // Adicionar atalhos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (gameState.currentView === 'game-player' && gameState.phase === 'question') {
+                const key = e.key;
+                if (['1', '2', '3', '4'].includes(key)) {
+                    const answerIndex = parseInt(key) - 1;
+                    if (answerIndex < gameState.currentQuiz.questions[gameState.currentQuestion].options.length) {
+                        submitAnswer(answerIndex);
+                    }
+                }
+            }
+            
+            // Atalho para voltar (ESC)
+            if (e.key === 'Escape') {
+                if (gameState.currentView !== 'home') {
+                    if (confirm('Deseja voltar ao início? O progresso será perdido.')) {
+                        showHome();
+                    }
+                }
+            }
+        });
+
+        // Adicionar suporte a gestos em dispositivos móveis
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (!touchStartX || !touchStartY) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            // Swipe para a direita = voltar
+            if (Math.abs(diffX) > Math.abs(diffY) && diffX < -100) {
+                if (gameState.currentView === 'my-quizzes') {
+                    showHome();
+                }
+            }
+            
+            touchStartX = 0;
+            touchStartY = 0;
+        });
+
+        // Melhorar responsividade em tempo real
+        function updateResponsiveLayout() {
+            const isMobile = window.innerWidth < 768;
+            const elements = document.querySelectorAll('.text-6xl, .text-5xl, .text-4xl');
+            
+            elements.forEach(el => {
+                if (isMobile) {
+                    el.classList.add('text-3xl');
+                    el.classList.remove('text-6xl', 'text-5xl', 'text-4xl');
+                }
+            });
+        }
+
+        window.addEventListener('resize', updateResponsiveLayout);
+
+        // Adicionar modo escuro/claro
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        // Aplicar tema salvo
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Adicionar estatísticas do jogo
+        function updateGameStats(result) {
+            let stats = JSON.parse(localStorage.getItem('kahoot-stats') || '{}');
+            
+            stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+            stats.totalQuestions = (stats.totalQuestions || 0) + gameState.currentQuiz.questions.length;
+            
+            if (result === 'win') {
+                stats.gamesWon = (stats.gamesWon || 0) + 1;
+            }
+            
+            localStorage.setItem('kahoot-stats', JSON.stringify(stats));
+        }
+
+        // Função para copiar código da sala
+        function copyRoomCode() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(gameState.roomCode);
+                showNotification('Código copiado!', 'success');
+            }
+        }
+
+        // Adicionar botão de copiar código (se não existir)
+        function addCopyButton() {
+            const roomCodeElement = document.getElementById('room-code');
+            if (roomCodeElement && !roomCodeElement.nextElementSibling?.classList.contains('copy-btn')) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn mt-4 bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors';
+                copyBtn.innerHTML = '📋 Copiar Código';
+                copyBtn.onclick = copyRoomCode;
+                roomCodeElement.parentNode.appendChild(copyBtn);
+            }
+        }
+
+        // Modificar startGame para incluir botão de copiar
+        const originalStartGame = startGame;
+        function enhancedStartGame(quizId) {
+            originalStartGame(quizId);
+            setTimeout(addCopyButton, 100);
+        }
+        startGame = enhancedStartGame;
+    </script>
+</body>
+</html>
